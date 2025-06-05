@@ -27,13 +27,13 @@ class ImageSubscriber(Node):
     cv2.waitKey(1)
   
 def main(args=None):
-  
-  rclpy.init(args=args)
-  image_subscriber = ImageSubscriber()
-  rclpy.spin(image_subscriber)
-  
-  image_subscriber.destroy_node()
-  rclpy.shutdown()
+
+  try:
+    with rclpy.init(args=args):
+      image_subscriber = ImageSubscriber()
+      rclpy.spin(image_subscriber)
+  except (KeyboardInterrupt, ExternalShutdownException):
+    pass
   
 if __name__ == '__main__':
   main()
