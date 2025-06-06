@@ -1,9 +1,6 @@
 import rclpy
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
-from gpiozero import Button
-from gpiozero import PWMOutputDevice
-import threading
 
 from geometry_msgs.msg import Twist
 from .servo import Servo
