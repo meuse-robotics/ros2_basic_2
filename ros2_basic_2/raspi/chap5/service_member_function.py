@@ -29,11 +29,7 @@ class RobotService(Node):
             print(str(self.servo.count_R) + " " + str(self.servo.count_L))
             pass
         self.servo.set_speed(0, 0)
-        self.servo.MOT_R_1.value = 0
-        self.servo.MOT_R_2.value = 0
         self.servo.init_variables_R()
-        self.servo.MOT_L_1.value = 0
-        self.servo.MOT_L_2.value = 0
         self.servo.init_variables_L()
         response.done = True
         return response
