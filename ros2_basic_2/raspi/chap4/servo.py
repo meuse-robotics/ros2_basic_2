@@ -52,12 +52,16 @@ class Servo:
         self.prev_count_R = 0
         self.err_prev_R = 0
         self.err_I_R = 0
+        self.MOT_R_1.value = 0
+        self.MOT_R_2.value = 0
     
     def init_variables_L(self):
         self.count_L = 0
         self.prev_count_L = 0
         self.err_prev_L = 0
         self.err_I_L = 0
+        self.MOT_L_1.value = 0
+        self.MOT_L_2.value = 0
 
     def drive(self):
         # --- Right Motor PID ---
