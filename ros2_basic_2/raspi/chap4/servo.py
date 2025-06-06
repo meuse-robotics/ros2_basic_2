@@ -1,100 +1,128 @@
-from gpiozero import Button
-from gpiozero import PWMOutputDevice
+from gpiozero import Button, PWMOutputDevice
 import threading
 
-def enc_callback_R():
-	global count_R
-	count_R += 1
+class Servo:
+    def __init__(self):
+        # Encoder settings
+        self.ENC_R = Button(10, pull_up=True)
+        self.ENC_L = Button(2, pull_up=True)
+        self.count_R = 0
+        self.count_L = 0
 
-def enc_callback_L():
-	global count_L
-	count_L += 1
+        # Bind encoder callbacks to instance methods
+        self.ENC_R.when_pressed = self.enc_callback_R
+        self.ENC_R.when_released = self.enc_callback_R
+        self.ENC_L.when_pressed = self.enc_callback_L
+        self.ENC_L.when_released = self.enc_callback_L
 
-def drive(): #0.1秒ごとに実行
-	global count_R
-	global count_L
-	global prev_count_R
-	global prev_count_L
-	global err_I_R
-	global err_I_L
-	global err_prev_R
-	global err_prev_L
+        # Motor settings
+        self.MOT_R_1 = PWMOutputDevice(pin=23, frequency=60)
+        self.MOT_R_2 = PWMOutputDevice(pin=22, frequency=60)
+        self.MOT_L_1 = PWMOutputDevice(pin=18, frequency=60)
+        self.MOT_L_2 = PWMOutputDevice(pin=17, frequency=60)
 
-	speed_R = (count_R - prev_count_R)/40/DURATION
-	err_P = target_speed_R - speed_R
-	err_I_R += err_P * DURATION
-	err_D = (err_P - err_prev_R)/DURATION
-	duty_R = Kp * err_P + Ki * err_I_R + Kd * err_D
-	if duty_R > 0:
-		if duty_R > 100.0:
-			duty_R = 100.0
-		MOT_R_1.value = duty_R*0.01
-		MOT_R_2.value = 0
-	else:
-		if duty_R < -100.0:
-			duty_R = -100.0
-		MOT_R_1.value = 0
-		MOT_R_2.value = -duty_R*0.01
-	prev_count_R = count_R
-	err_prev_R = err_P
+        # Control parameters
+        self.DURATION = 0.1  # Control interval (seconds)
+        self.prev_count_R = 0
+        self.prev_count_L = 0
+        self.err_prev_R = 0
+        self.err_prev_L = 0
+        self.err_I_R = 0
+        self.err_I_L = 0
+        self.Kp = 20
+        self.Ki = 100
+        self.Kd = 0.1
+        self.target_speed_R = 0.0
+        self.target_speed_L = 0.0
 
-	speed_L = (count_L - prev_count_L)/40/DURATION
-	err_P = target_speed_L - speed_L
-	err_I_L += err_P * DURATION
-	err_D = (err_P - err_prev_L)/DURATION
-	duty_L = Kp * err_P + Ki * err_I_L + Kd * err_D
-	if duty_L > 0:
-		if duty_L > 100.0:
-			duty_L = 100.0
-		MOT_L_1.value = duty_L*0.01
-		MOT_L_2.value = 0
-	else:
-		if duty_L < -100.0:
-			duty_L = -100.0
-		MOT_L_1.value = 0
-		MOT_L_2.value = -duty_L*0.01
-	prev_count_L = count_L
-	err_prev_L = err_P
+    def enc_callback_R(self):
+        if self.target_speed_R > 0:
+            self.count_R += 1
+        else:
+            self.count_R -= 1
 
-	t = threading.Timer(DURATION, drive) #DURATION秒後にdriveを実行
-	t.start()
+    def enc_callback_L(self):
+        if self.target_speed_L > 0:
+            self.count_L += 1
+        else:
+            self.count_L -= 1
 
-# encoder settings
-ENC_R = Button(10, pull_up=True)
-ENC_L = Button(2, pull_up=True)
-count_R = 0
-count_L = 0
-ENC_R.when_pressed = enc_callback_R
-ENC_R.when_released = enc_callback_R
-ENC_L.when_pressed = enc_callback_L
-ENC_L.when_released = enc_callback_L
+    def init_variables_R(self):
+        self.count_R = 0
+        self.prev_count_R = 0
+        self.err_prev_R = 0
+        self.err_I_R = 0
+    
+    def init_variables_L(self):
+        self.count_L = 0
+        self.prev_count_L = 0
+        self.err_prev_L = 0
+        self.err_I_L = 0
 
-# motor settings
-MOT_R_1 = PWMOutputDevice(pin=23, frequency=60)
-MOT_R_2 = PWMOutputDevice(pin=22, frequency=60)
-MOT_L_1 = PWMOutputDevice(pin=18, frequency=60)
-MOT_L_2 = PWMOutputDevice(pin=17, frequency=60)
+    def drive(self):
+        # --- Right Motor PID ---
+        speed_R = (self.count_R - self.prev_count_R) / 40 / self.DURATION
+        err_P = self.target_speed_R - speed_R
+        self.err_I_R += err_P * self.DURATION
+        err_D = (err_P - self.err_prev_R) / self.DURATION
+        duty_R = self.Kp * err_P + self.Ki * self.err_I_R + self.Kd * err_D
 
-DURATION = 0.1 #制御周期（秒）
-prev_count_R = 0 #前回カウント
-prev_count_L = 0
-err_prev_R = 0 #前回誤差
-err_prev_L = 0
-err_I_R = 0 #誤差の積分
-err_I_L = 0
-Kp = 20 #比例ゲイン
-Ki = 100 #積分ゲイン
-Kd = 0.1 #微分ゲイン
-target_speed_R = 0.5 #目標速度
-target_speed_L = 0.5
+        duty_R = max(min(duty_R, 100.0), -100.0)
 
-drive() #最初の呼び出し
+        if duty_R > 0:
+            self.MOT_R_1.value = duty_R / 100.0
+            self.MOT_R_2.value = 0
+        else:
+            self.MOT_R_1.value = 0
+            self.MOT_R_2.value = -duty_R / 100.0
 
-try:
-	while True:
-		pass
-except KeyboardInterrupt:
-	MOT_R_1.value = 0
-	MOT_R_2.value = 0
-	MOT_L_1.value = 0
-	MOT_L_2.value = 0
+        self.prev_count_R = self.count_R
+        self.err_prev_R = err_P
+
+        # --- Left Motor PID ---
+        speed_L = (self.count_L - self.prev_count_L) / 40 / self.DURATION
+        err_P = self.target_speed_L - speed_L
+        self.err_I_L += err_P * self.DURATION
+        err_D = (err_P - self.err_prev_L) / self.DURATION
+        duty_L = self.Kp * err_P + self.Ki * self.err_I_L + self.Kd * err_D
+
+        duty_L = max(min(duty_L, 100.0), -100.0)
+
+        if duty_L > 0:
+            self.MOT_L_1.value = duty_L / 100.0
+            self.MOT_L_2.value = 0
+        else:
+            self.MOT_L_1.value = 0
+            self.MOT_L_2.value = -duty_L / 100.0
+
+        self.prev_count_L = self.count_L
+        self.err_prev_L = err_P
+
+        # Schedule the next control update
+        t = threading.Timer(self.DURATION, self.drive)
+        t.start()
+
+    def set_speed(self, speed_L, speed_R):
+        self.target_speed_L = speed_L
+        if self.target_speed_L == 0:
+            self.init_variables_L()
+        self.target_speed_R = speed_R
+        if self.target_speed_R == 0:
+            self.init_variables_R()
+
+def main():
+    servo = Servo()
+    servo.drive()  # Initial call
+
+    try:
+        while True:
+            pass
+    except KeyboardInterrupt:
+        # Stop all motors on exit
+        servo.MOT_R_1.value = 0
+        servo.MOT_R_2.value = 0
+        servo.MOT_L_1.value = 0
+        servo.MOT_L_2.value = 0
+
+if __name__ == "__main__":
+    main()
