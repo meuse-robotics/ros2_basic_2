@@ -9,8 +9,7 @@ from geometry_msgs.msg import Twist
 from .servo import Servo
 
 class CommandSubscriberAction(Node):
-    target_speed_R = 0.0
-    target_speed_L = 0.0
+    
     def __init__(self):
         super().__init__('command_subscriber_action')
         self.subscription = self.create_subscription(
