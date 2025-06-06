@@ -9,8 +9,7 @@ import threading
 
 
 class RobotService(Node):
-    target_speed_R = 0.0
-    target_speed_L = 0.0
+    
     def __init__(self):
         super().__init__('robot_service')
         self.srv = self.create_service(RobotCommand, 'robot_command', self.robot_command_callback)
