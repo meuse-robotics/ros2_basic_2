@@ -12,8 +12,7 @@ import cv2 # OpenCV library
 from cv2 import aruco
 
 class ControllerNode(Node):
-    target_speed_R = 0.0
-    target_speed_L = 0.0
+    
     def __init__(self):
         super().__init__('controller_node')
         self.subscription = self.create_subscription(
