@@ -21,14 +21,12 @@ class RobotService(Node):
         self.servo.drive()
 
     def robot_command_callback(self, request, response):
-        global count_R
-        global count_L
-
         response.done = False
         self.servo.init_variables_L()
         self.servo.init_variables_R()
         self.servo.set_speed(0.3, 0.3)
         while self.servo.count_R < request.dist:
+            print(str(self.servo.count_R) + " " + str(self.servo.count_L))
             pass
         self.servo.set_speed(0, 0)
         self.servo.MOT_R_1.value = 0
